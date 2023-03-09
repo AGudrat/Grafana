@@ -1,0 +1,43 @@
+name: dockercompose3264583205733253174
+services:
+  prometheus:
+    command:
+    - --config.file=/etc/prometheus/prometheus.yml
+    container_name: prometheus
+    depends_on:
+      webapplication1:
+        condition: service_started
+    image: prom/prometheus
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 9090
+      published: "9090"
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: C:\Users\User\Desktop\Test\WebApplication1\prometheus.yml
+      target: /etc/prometheus/prometheus.yml
+      bind:
+        create_host_path: true
+  webapplication1:
+    build:
+      context: C:\Users\User\Desktop\Test\WebApplication1
+      dockerfile: WebApplication1/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    image: webapplication1
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 80
+      protocol: tcp
+    - mode: ingress
+      target: 80
+      published: "8031"
+      protocol: tcp
+networks:
+  default:
+    name: dockercompose3264583205733253174_default

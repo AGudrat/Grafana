@@ -1,0 +1,81 @@
+name: dockercompose12065516943208252244
+services:
+  grafana:
+    container_name: grafana
+    depends_on:
+      loki:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: pwd123
+    image: grafana/grafana
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 3000
+      published: "3000"
+      protocol: tcp
+  loki:
+    command:
+    - -config.file=/etc/loki/local-config.yaml
+    container_name: loki
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q --tries=1 -O- http://localhost:3100/ready
+      timeout: 3s
+      interval: 3s
+      retries: 10
+      start_period: 10s
+    image: grafana/loki:master
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 3100
+      published: "3100"
+      protocol: tcp
+  prometheus:
+    command:
+    - --config.file=/etc/prometheus/prometheus.yml
+    container_name: prometheus
+    depends_on:
+      webapplication1:
+        condition: service_started
+    image: prom/prometheus
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 9090
+      published: "9090"
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: C:\Users\User\Desktop\TestGrafana\WebApplication1\prometheus.yml
+      target: /etc/prometheus/prometheus.yml
+      bind:
+        create_host_path: true
+  webapplication1:
+    build:
+      context: C:\Users\User\Desktop\TestGrafana\WebApplication1
+      dockerfile: WebApplication1/Dockerfile
+    depends_on:
+      loki:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    image: webapplication1
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 80
+      protocol: tcp
+    - mode: ingress
+      target: 80
+      published: "8031"
+      protocol: tcp
+networks:
+  default:
+    name: dockercompose12065516943208252244_default

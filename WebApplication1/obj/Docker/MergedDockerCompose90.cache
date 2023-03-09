@@ -1,0 +1,144 @@
+name: dockercompose14252868665844183700
+services:
+  grafana:
+    container_name: grafana
+    depends_on:
+      loki:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: pwd123
+    image: grafana/grafana
+    networks:
+      network1: null
+    ports:
+    - mode: ingress
+      target: 3000
+      published: "3000"
+      protocol: tcp
+  loki:
+    command:
+    - -config.file=/etc/loki/local-config.yaml
+    container_name: loki
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q --tries=1 -O- http://localhost:3100/ready
+      timeout: 3s
+      interval: 3s
+      retries: 10
+      start_period: 10s
+    image: grafana/loki:master
+    networks:
+      network1: null
+    ports:
+    - mode: ingress
+      target: 3100
+      published: "3100"
+      protocol: tcp
+  prometheus:
+    command:
+    - --config.file=/etc/prometheus/prometheus.yml
+    container_name: prometheus
+    depends_on:
+      webapplication1:
+        condition: service_started
+    image: prom/prometheus
+    networks:
+      network1: null
+    ports:
+    - mode: ingress
+      target: 9090
+      published: "9090"
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: C:\Users\user\Desktop\Grafana\WebApplication1\prometheus.yml
+      target: /etc/prometheus/prometheus.yml
+      bind:
+        create_host_path: true
+  seq:
+    depends_on:
+      webapplication1:
+        condition: service_started
+    environment:
+      ACCEPT_EULA: "Y"
+    image: datalust/seq
+    networks:
+      network1: null
+    ports:
+    - mode: ingress
+      target: 5341
+      published: "5341"
+      protocol: tcp
+    - mode: ingress
+      target: 80
+      published: "8081"
+      protocol: tcp
+    restart: always
+    volumes:
+    - type: bind
+      source: /path/to/seq/data
+      target: /data
+      bind:
+        create_host_path: true
+  webapplication1:
+    build:
+      context: C:\Users\user\Desktop\Grafana\WebApplication1
+      dockerfile: WebApplication1/Dockerfile
+      labels:
+        com.microsoft.created-by: visual-studio
+        com.microsoft.visual-studio.project-name: WebApplication1
+    container_name: WebApplication1_1
+    depends_on:
+      loki:
+        condition: service_healthy
+    entrypoint:
+    - tail
+    - -f
+    - /dev/null
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    image: webapplication1
+    labels:
+      com.microsoft.visual-studio.project-name: WebApplication1
+      com.microsoft.visualstudio.debuggee.arguments: ' --additionalProbingPath /root/.nuget/packages  "/app/WebApplication1.dll"'
+      com.microsoft.visualstudio.debuggee.killprogram: /bin/sh -c "if PID=$$(pidof
+        dotnet); then kill $$PID; fi"
+      com.microsoft.visualstudio.debuggee.program: dotnet
+      com.microsoft.visualstudio.debuggee.workingdirectory: /app
+    networks:
+      network1: null
+    ports:
+    - mode: ingress
+      target: 80
+      protocol: tcp
+    - mode: ingress
+      target: 80
+      published: "8031"
+      protocol: tcp
+    tty: true
+    volumes:
+    - type: bind
+      source: C:\Users\user\vsdbg\vs2017u5
+      target: /remote_debugger
+      bind:
+        create_host_path: true
+    - type: bind
+      source: C:\Users\user\AppData\Roaming/ASP.NET/Https
+      target: /root/.aspnet/https
+      read_only: true
+      bind:
+        create_host_path: true
+    - type: bind
+      source: C:\Users\user\AppData\Roaming/Microsoft/UserSecrets
+      target: /root/.microsoft/usersecrets
+      read_only: true
+      bind:
+        create_host_path: true
+networks:
+  network1:
+    name: dockercompose14252868665844183700_network1
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.22.0.0/24

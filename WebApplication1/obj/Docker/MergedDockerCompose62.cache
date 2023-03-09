@@ -1,0 +1,133 @@
+name: dockercompose14252868665844183700
+services:
+  grafana:
+    container_name: grafana
+    depends_on:
+      loki:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: pwd123
+    image: grafana/grafana
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 3000
+      published: "3000"
+      protocol: tcp
+  loki:
+    command:
+    - -config.file=/etc/loki/local-config.yaml
+    container_name: loki
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q --tries=1 -O- http://localhost:3100/ready
+      timeout: 3s
+      interval: 3s
+      retries: 10
+      start_period: 10s
+    image: grafana/loki:master
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 3100
+      published: "3100"
+      protocol: tcp
+  prometheus:
+    command:
+    - --config.file=/etc/prometheus/prometheus.yml
+    container_name: prometheus
+    depends_on:
+      webapplication1:
+        condition: service_started
+    image: prom/prometheus
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 9090
+      published: "9090"
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: C:\Users\user\Desktop\Grafana\WebApplication1\prometheus.yml
+      target: /etc/prometheus/prometheus.yml
+      bind:
+        create_host_path: true
+  seq:
+    environment:
+      ACCEPT_EULA: "true"
+    image: datalust/seq:latest
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 5341
+      published: "5341"
+      protocol: tcp
+    - mode: ingress
+      target: 80
+      published: "8081"
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: c:\seq\data
+      target: /data
+      bind:
+        create_host_path: true
+  seq-input-gelf:
+    depends_on:
+      seq:
+        condition: service_started
+    environment:
+      SEQ_ADDRESS: http://seq:5341
+    image: datalust/seq-input-gelf:latest
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 12201
+      published: "12201"
+      protocol: udp
+    restart: unless-stopped
+  seq-input-syslog:
+    depends_on:
+      seq:
+        condition: service_started
+    environment:
+      SEQ_ADDRESS: http://seq:5341
+    image: datalust/seq-input-syslog:latest
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 514
+      published: "514"
+      protocol: udp
+    restart: unless-stopped
+  webapplication1:
+    build:
+      context: C:\Users\user\Desktop\Grafana\WebApplication1
+      dockerfile: WebApplication1/Dockerfile
+    depends_on:
+      loki:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    image: webapplication1
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 80
+      protocol: tcp
+    - mode: ingress
+      target: 80
+      published: "8031"
+      protocol: tcp
+networks:
+  default:
+    name: dockercompose14252868665844183700_default
